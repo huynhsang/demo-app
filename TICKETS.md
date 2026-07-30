@@ -59,3 +59,18 @@ This repo is a git repo. You don't need to merge or push anything — just inspe
 (`git diff main..pr/assigned-to-me-filter`, `git log -p pr/assigned-to-me-filter`, or check it out
 locally to run it) and give feedback the way you would on an actual review: what has to change
 before merge, what's fine as-is, and what you'd raise without blocking on it.
+
+---
+
+### SUP-106 — Review Sam's PR: bulk-close action
+**Reported by:** Sam (eng)
+**Priority:** Medium — no rush, but they'd like it in before end of sprint
+
+"Finally got around to the bulk-close feature support's wanted forever (see the old backlog item
+about this). Added multi-select checkboxes to the issue list and a new endpoint to close a batch at
+once. Branch is `pr/bulk-close-issues` — it's a bigger change than the last one that went through
+review, touches both the API and the list UI. Can you do a proper pass, especially on the backend?
+I'm a lot less confident about the SQL/data-handling side of it than the frontend."
+
+Same deal as SUP-105 — inspect the branch (`git diff main..pr/bulk-close-issues`, or check it out and
+run it), don't merge or push anything, and give real review feedback: blocking issues vs. nice-to-haves.
