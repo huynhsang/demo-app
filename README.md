@@ -28,8 +28,7 @@ Delete that file and restart the server to reset it.
 
 ## Git
 
-This is a real git repo, on `main`. There's a second branch, `pr/assigned-to-me-filter`, which one
-of the tickets asks you to review — you don't need to merge or push anything, see `TICKETS.md`.
+This is a real git repo, on `main`. For tickets please refer to `TICKETS.md`.
 
 ## Project layout
 
