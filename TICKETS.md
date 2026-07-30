@@ -77,18 +77,6 @@ run it), don't merge or push anything, and give real review feedback: blocking i
 
 ---
 
-### SUP-107 — Editing an issue quickly can leave the screen showing the wrong thing
-**Reported by:** Priya (eng)
-**Priority:** Medium
-
-"Noticed this while testing something unrelated — if you change two fields on an issue back to back,
-like flipping the status and then immediately changing the priority, the page sometimes settles on a
-value that doesn't match what's actually saved. Refreshing fixes it, so the underlying data seems
-fine, but the screen is wrong for a bit. Haven't been able to pin down exactly when it happens, just
-that it's happened more than once."
-
----
-
 ### SUP-108 — Add commenting on issues
 **Reported by:** Jordan, relaying a push from leadership
 **Priority:** High — they want this in before the next customer review
