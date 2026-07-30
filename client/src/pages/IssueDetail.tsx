@@ -31,81 +31,81 @@ export default function IssueDetail() {
     setIssue(updated);
   }
 
-  if (notFound) {
-    return (
-      <div className="page">
-        <div className="empty-state">
-          Issue not found. <Link to="/">Back to the list</Link>.
-        </div>
-      </div>
-    );
-  }
-
-  if (!issue) {
-    return (
-      <div className="page">
-        <div className="empty-state">Loading…</div>
-      </div>
-    );
-  }
+  const numericId = Number(id);
 
   return (
     <div className="page page-narrow">
-      <Link to="/" className="back-link">
-        ← Back to issues
-      </Link>
-
-      <div className="card detail-card">
-        <div className="detail-header">
-          <span className={`status-dot status-${issue.status}`} />
-          <h1>{issue.title}</h1>
-        </div>
-
-        <p className="detail-description">{issue.description || 'No description provided.'}</p>
-
-        <div className="detail-meta">
-          <label className="field">
-            <span>Status</span>
-            <select value={issue.status} onChange={(e) => patch({ status: e.target.value as Status })}>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Priority</span>
-            <select value={issue.priority} onChange={(e) => patch({ priority: e.target.value as Priority })}>
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Assignee</span>
-            <div className="assignee-edit">
-              <div className="avatar avatar-sm" style={{ background: avatarColor(issue.assignee) }}>
-                {initials(issue.assignee)}
-              </div>
-              <input
-                value={assigneeDraft}
-                onChange={(e) => setAssigneeDraft(e.target.value)}
-                onBlur={() => assigneeDraft.trim() && patch({ assignee: assigneeDraft.trim() })}
-              />
-            </div>
-          </label>
-        </div>
-
-        <div className="detail-timestamps">
-          <span>Created {formatDateTime(issue.created_at)}</span>
-          <span>Updated {formatDateTime(issue.updated_at)}</span>
+      <div className="detail-nav">
+        <Link to="/" className="back-link">
+          ← Back to issues
+        </Link>
+        <div className="adjacent-links">
+          <Link to={`/issues/${numericId - 1}`} className="btn btn-ghost">
+            ‹ Previous
+          </Link>
+          <Link to={`/issues/${numericId + 1}`} className="btn btn-ghost">
+            Next ›
+          </Link>
         </div>
       </div>
+
+      {notFound && <div className="empty-state">Issue not found.</div>}
+
+      {!notFound && !issue && <div className="empty-state">Loading…</div>}
+
+      {!notFound && issue && (
+        <div className="card detail-card">
+          <div className="detail-header">
+            <span className={`status-dot status-${issue.status}`} />
+            <h1>{issue.title}</h1>
+          </div>
+
+          <p className="detail-description">{issue.description || 'No description provided.'}</p>
+
+          <div className="detail-meta">
+            <label className="field">
+              <span>Status</span>
+              <select value={issue.status} onChange={(e) => patch({ status: e.target.value as Status })}>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {statusLabel(s)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Priority</span>
+              <select value={issue.priority} onChange={(e) => patch({ priority: e.target.value as Priority })}>
+                {PRIORITIES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Assignee</span>
+              <div className="assignee-edit">
+                <div className="avatar avatar-sm" style={{ background: avatarColor(issue.assignee) }}>
+                  {initials(issue.assignee)}
+                </div>
+                <input
+                  value={assigneeDraft}
+                  onChange={(e) => setAssigneeDraft(e.target.value)}
+                  onBlur={() => assigneeDraft.trim() && patch({ assignee: assigneeDraft.trim() })}
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="detail-timestamps">
+            <span>Created {formatDateTime(issue.created_at)}</span>
+            <span>Updated {formatDateTime(issue.updated_at)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

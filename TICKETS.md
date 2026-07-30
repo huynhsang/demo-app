@@ -29,10 +29,10 @@ wherever it actually belongs?"
 **Reported by:** Priya (eng, noticed while testing something else)
 **Priority:** Medium
 
-"If you open an issue, then quickly go back and open a different one before the first one's finished
-loading, the page sometimes briefly shows the first issue's data under the second issue's URL. It
-corrects itself a second later, so it's easy to miss — but it's a real discrepancy while it lasts.
-Worth understanding why before it bites us somewhere an edit could get applied to the wrong record."
+"If you're clicking through issues quickly using the Previous/Next links, the page sometimes briefly
+shows a different issue's data than the one in the URL. It corrects itself a second later, so it's
+easy to miss — but it's a real discrepancy while it lasts. Worth understanding why before it bites us
+somewhere an edit could get applied to the wrong record."
 
 ---
 

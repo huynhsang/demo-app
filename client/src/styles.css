@@ -375,11 +375,22 @@ a {
 
 /* Detail page */
 
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.adjacent-links {
+  display: flex;
+  gap: 8px;
+}
+
 .back-link {
   display: inline-block;
   font-size: 13px;
   color: var(--text-muted);
-  margin-bottom: 14px;
 }
 
 .back-link:hover {
