@@ -26,6 +26,11 @@ This installs both workspaces and starts the backend (`http://localhost:4000`) a
 The SQLite database is a file created at `server/data.sqlite` on first run, seeded with sample issues.
 Delete that file and restart the server to reset it.
 
+## Git
+
+This is a real git repo, on `main`. There's a second branch, `pr/assigned-to-me-filter`, which one
+of the tickets asks you to review — you don't need to merge or push anything, see `TICKETS.md`.
+
 ## Project layout
 
 ```
