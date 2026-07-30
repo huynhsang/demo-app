@@ -243,10 +243,9 @@ a {
 .issue-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
+  gap: 12px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
-  transition: background 0.1s ease;
 }
 
 .issue-row:last-child {
@@ -255,6 +254,37 @@ a {
 
 .issue-row:hover {
   background: var(--surface-hover);
+}
+
+.issue-row > input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.issue-row-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 16px 0;
+}
+
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.bulk-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .status-dot {

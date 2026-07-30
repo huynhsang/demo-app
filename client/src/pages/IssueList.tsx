@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../types';
-import { fetchIssues } from '../api';
+import { fetchIssues, bulkCloseIssues } from '../api';
 import { avatarColor, initials, statusLabel } from '../utils';
 
 const STATUSES = ['all', 'open', 'in_progress', 'closed'] as const;
@@ -11,6 +11,8 @@ export default function IssueList() {
   const [status, setStatus] = useState(() => localStorage.getItem('statusFilter') || 'all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [closing, setClosing] = useState(false);
 
   async function refresh(nextStatus: string, nextSearch: string) {
     setLoading(true);
@@ -40,6 +42,39 @@ export default function IssueList() {
     refresh(status, next);
   }
 
+  function onToggleOne(id: number) {
+    const next = new Set(selected);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelected(next);
+  }
+
+  function onToggleSelectAll() {
+    const allSelected = issues.length > 0 && issues.every((i) => selected.has(i.id));
+    const next = new Set(selected);
+    if (allSelected) {
+      issues.forEach((i) => next.delete(i.id));
+    } else {
+      issues.forEach((i) => next.add(i.id));
+    }
+    setSelected(next);
+  }
+
+  async function onBulkClose() {
+    setClosing(true);
+    try {
+      await bulkCloseIssues(Array.from(selected));
+      await refresh(status, search);
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  const allVisibleSelected = issues.length > 0 && issues.every((i) => selected.has(i.id));
+
   return (
     <div className="page">
       <div className="page-header">
@@ -68,6 +103,18 @@ export default function IssueList() {
         />
       </div>
 
+      <div className="bulk-bar">
+        <label className="bulk-select-all">
+          <input type="checkbox" checked={allVisibleSelected} onChange={onToggleSelectAll} />
+          Select all
+        </label>
+        {selected.size > 0 && (
+          <button type="button" className="btn btn-primary" onClick={onBulkClose} disabled={closing}>
+            {closing ? 'Closing…' : `Close ${selected.size} issue${selected.size === 1 ? '' : 's'}`}
+          </button>
+        )}
+      </div>
+
       <div className="card list-card">
         {loading && <div className="empty-state">Loading…</div>}
 
@@ -77,21 +124,28 @@ export default function IssueList() {
 
         {!loading &&
           issues.map((issue) => (
-            <Link to={`/issues/${issue.id}`} className="issue-row" key={issue.id}>
-              <span className={`status-dot status-${issue.status}`} />
-              <div className="issue-row-main">
-                <div className="issue-row-title">{issue.title}</div>
-                <div className="issue-row-desc">{issue.description}</div>
-              </div>
-              <span className={`badge priority-${issue.priority}`}>{issue.priority}</span>
-              <div
-                className="avatar avatar-sm"
-                style={{ background: avatarColor(issue.assignee) }}
-                title={issue.assignee}
-              >
-                {initials(issue.assignee)}
-              </div>
-            </Link>
+            <div className="issue-row" key={issue.id}>
+              <input
+                type="checkbox"
+                checked={selected.has(issue.id)}
+                onChange={() => onToggleOne(issue.id)}
+              />
+              <Link to={`/issues/${issue.id}`} className="issue-row-link">
+                <span className={`status-dot status-${issue.status}`} />
+                <div className="issue-row-main">
+                  <div className="issue-row-title">{issue.title}</div>
+                  <div className="issue-row-desc">{issue.description}</div>
+                </div>
+                <span className={`badge priority-${issue.priority}`}>{issue.priority}</span>
+                <div
+                  className="avatar avatar-sm"
+                  style={{ background: avatarColor(issue.assignee) }}
+                  title={issue.assignee}
+                >
+                  {initials(issue.assignee)}
+                </div>
+              </Link>
+            </div>
           ))}
       </div>
     </div>

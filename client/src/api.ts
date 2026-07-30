@@ -36,6 +36,17 @@ export async function createIssue(input: {
   return res.json();
 }
 
+export async function bulkCloseIssues(ids: number[]): Promise<Issue[]> {
+  const res = await fetch('/api/issues/bulk-close', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error('Failed to close issues');
+  const data = await res.json();
+  return data.updated;
+}
+
 export async function updateIssue(
   id: number | string,
   input: Partial<Pick<Issue, 'title' | 'description' | 'status' | 'assignee' | 'priority'>>
