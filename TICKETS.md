@@ -86,3 +86,19 @@ like flipping the status and then immediately changing the priority, the page so
 value that doesn't match what's actually saved. Refreshing fixes it, so the underlying data seems
 fine, but the screen is wrong for a bit. Haven't been able to pin down exactly when it happens, just
 that it's happened more than once."
+
+---
+
+### SUP-108 — Add commenting on issues
+**Reported by:** Jordan, relaying a push from leadership
+**Priority:** High — they want this in before the next customer review
+
+"Customers keep asking why they can't leave a note on their own ticket without emailing us
+separately, and support keeps losing context between shifts because there's nowhere to leave a quick
+update on an issue. We need the ability to comment on an issue — nothing fancy, just a running list
+of notes people can leave and see, with who wrote it and when.
+
+This is the biggest thing on the list right now and leadership wants it in soon, so it's high
+priority — but I'd rather you build the core of it properly than rush something half-broken. Use your
+own judgment on scope; I haven't specced out every detail (whether comments can be edited or deleted,
+for instance) on purpose."
