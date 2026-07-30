@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Issue } from '../types';
 import { fetchIssues } from '../api';
 import { avatarColor, initials, statusLabel } from '../utils';
+import { CURRENT_USER } from '../constants';
 
 const STATUSES = ['all', 'open', 'in_progress', 'closed'] as const;
 
@@ -11,6 +12,7 @@ export default function IssueList() {
   const [status, setStatus] = useState(() => localStorage.getItem('statusFilter') || 'all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [assignedToMe, setAssignedToMe] = useState(false);
 
   async function refresh(nextStatus: string, nextSearch: string) {
     setLoading(true);
@@ -20,6 +22,16 @@ export default function IssueList() {
         search: nextSearch || undefined,
       });
       setIssues(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMine() {
+    setLoading(true);
+    try {
+      const all = await fetchIssues({});
+      setIssues(all.filter((i) => i.assignee.toLowerCase() === CURRENT_USER.toLowerCase()));
     } finally {
       setLoading(false);
     }
@@ -38,6 +50,14 @@ export default function IssueList() {
   function onSearch(next: string) {
     setSearch(next);
     refresh(status, next);
+  }
+
+  function onToggleMine() {
+    const next = !assignedToMe;
+    setAssignedToMe(next);
+    if (next) {
+      loadMine();
+    }
   }
 
   return (
@@ -66,6 +86,13 @@ export default function IssueList() {
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search titles…"
         />
+        <button
+          type="button"
+          className={`segment ${assignedToMe ? 'active' : ''}`}
+          onClick={onToggleMine}
+        >
+          Assigned to me
+        </button>
       </div>
 
       <div className="card list-card">
