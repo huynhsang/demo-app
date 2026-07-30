@@ -423,6 +423,16 @@ a {
   flex: 1;
 }
 
+.you-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eef2ff;
+  color: var(--primary);
+}
+
 .detail-timestamps {
   display: flex;
   gap: 18px;
