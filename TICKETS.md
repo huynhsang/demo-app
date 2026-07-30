@@ -74,3 +74,15 @@ I'm a lot less confident about the SQL/data-handling side of it than the fronten
 
 Same deal as SUP-105 — inspect the branch (`git diff main..pr/bulk-close-issues`, or check it out and
 run it), don't merge or push anything, and give real review feedback: blocking issues vs. nice-to-haves.
+
+---
+
+### SUP-107 — Editing an issue quickly can leave the screen showing the wrong thing
+**Reported by:** Priya (eng)
+**Priority:** Medium
+
+"Noticed this while testing something unrelated — if you change two fields on an issue back to back,
+like flipping the status and then immediately changing the priority, the page sometimes settles on a
+value that doesn't match what's actually saved. Refreshing fixes it, so the underlying data seems
+fine, but the screen is wrong for a bit. Haven't been able to pin down exactly when it happens, just
+that it's happened more than once."
