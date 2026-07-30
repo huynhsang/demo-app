@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import type { Issue, Priority, Status } from '../types';
 import { fetchIssue, updateIssue } from '../api';
 import { avatarColor, initials, formatDateTime, statusLabel } from '../utils';
-import { CURRENT_USER } from '../constants';
 
 const STATUSES: Status[] = ['open', 'in_progress', 'closed'];
 const PRIORITIES: Priority[] = ['low', 'medium', 'high'];
@@ -98,7 +97,6 @@ export default function IssueDetail() {
                 onChange={(e) => setAssigneeDraft(e.target.value)}
                 onBlur={() => assigneeDraft.trim() && patch({ assignee: assigneeDraft.trim() })}
               />
-              {issue.assignee === CURRENT_USER && <span className="you-badge">You</span>}
             </div>
           </label>
         </div>
