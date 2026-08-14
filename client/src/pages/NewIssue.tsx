@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { Priority } from '../types';
 import { createIssue } from '../api';
@@ -12,12 +12,34 @@ export default function NewIssue() {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
   const [assignee, setAssignee] = useState(CURRENT_USER);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState('');
+  const isSubmitting = useRef(false);
+  const lastAttempt = useRef<{ payload: string; key: string }>();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return;
-    const created = await createIssue({ title, description, priority, assignee });
-    navigate(`/issues/${created.id}`);
+    if (isSubmitting.current || !title.trim()) return;
+
+    isSubmitting.current = true;
+    setIsPending(true);
+    setError('');
+
+    const input = { title, description, priority, assignee };
+    const payload = JSON.stringify(input);
+    const key =
+      lastAttempt.current?.payload === payload ? lastAttempt.current.key : crypto.randomUUID();
+    lastAttempt.current = { payload, key };
+
+    try {
+      const created = await createIssue(input, key);
+      navigate(`/issues/${created.id}`);
+    } catch {
+      setError('Failed to create issue. Please try again.');
+    } finally {
+      isSubmitting.current = false;
+      setIsPending(false);
+    }
   }
 
   return (
@@ -60,12 +82,14 @@ export default function NewIssue() {
           </label>
         </div>
 
+        {error && <p role="alert">{error}</p>}
+
         <div className="form-actions">
           <Link to="/" className="btn btn-ghost">
             Cancel
           </Link>
-          <button type="submit" className="btn btn-primary">
-            Create issue
+          <button type="submit" className="btn btn-primary" disabled={isPending}>
+            {isPending ? 'Creating…' : 'Create issue'}
           </button>
         </div>
       </form>
