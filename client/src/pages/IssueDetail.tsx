@@ -15,14 +15,26 @@ export default function IssueDetail() {
 
   useEffect(() => {
     if (!id) return;
+    const controller = new AbortController();
+    let active = true;
+
     setIssue(null);
     setNotFound(false);
-    fetchIssue(id)
+    fetchIssue(id, controller.signal)
       .then((data) => {
+        if (!active) return;
         setIssue(data);
         setAssigneeDraft(data.assignee);
       })
-      .catch(() => setNotFound(true));
+      .catch(() => {
+        if (!active || controller.signal.aborted) return;
+        setNotFound(true);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [id]);
 
   async function patch(input: Partial<Pick<Issue, 'status' | 'priority' | 'assignee'>>) {

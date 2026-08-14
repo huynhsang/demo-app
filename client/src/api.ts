@@ -15,8 +15,8 @@ export async function fetchIssues(params: {
   return res.json();
 }
 
-export async function fetchIssue(id: string | number): Promise<Issue> {
-  const res = await fetch(`/api/issues/${id}`);
+export async function fetchIssue(id: string | number, signal?: AbortSignal): Promise<Issue> {
+  const res = await fetch(`/api/issues/${id}`, { signal });
   if (!res.ok) throw new Error('Failed to load issue');
   return res.json();
 }
