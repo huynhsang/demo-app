@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../types';
 import { fetchIssues, bulkCloseIssues } from '../api';
+import { completeBulkClose } from '../bulkCloseFlow';
 import { avatarColor, initials, statusLabel } from '../utils';
 
 const STATUSES = ['all', 'open', 'in_progress', 'closed'] as const;
@@ -66,8 +67,14 @@ export default function IssueList() {
   async function onBulkClose() {
     setClosing(true);
     try {
-      await bulkCloseIssues(Array.from(selected));
-      await refresh(status, search);
+      await completeBulkClose(
+        Array.from(selected),
+        status,
+        search,
+        bulkCloseIssues,
+        () => setSelected(new Set()),
+        refresh
+      );
     } finally {
       setClosing(false);
     }
