@@ -1,133 +1,113 @@
 import assert from 'node:assert/strict';
-import { once } from 'node:events';
-import type { Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import test from 'node:test';
-import { initializeDatabase } from './db.js';
-import { createApp } from './index.js';
+import test, { after, before } from 'node:test';
 
-type IssueSeed = {
-  title: string;
-  description?: string;
-  status?: string;
-  priority?: string;
-  assignee?: string;
-  created_at: string;
-  updated_at?: string;
-};
+const runtimeDirectory = path.join(process.cwd(), `.issues-api-test-${process.pid}`);
+const runtimeSourceDirectory = path.join(runtimeDirectory, 'src');
+let server: ChildProcess;
+let baseUrl: string;
 
-const seedIssues = (database: DatabaseSync, issues: IssueSeed[]) => {
-  const insert = database.prepare(`
-    INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  for (const issue of issues) {
-    insert.run(
-      issue.title,
-      issue.description ?? '',
-      issue.status ?? 'open',
-      issue.priority ?? 'medium',
-      issue.assignee ?? 'Priya',
-      issue.created_at,
-      issue.updated_at ?? issue.created_at
-    );
+const waitForServer = async () => {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(`${baseUrl}/api/issues`);
+      if (response.ok) return;
+    } catch {
+      // Wait for the test server to start.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
+  throw new Error('Test server did not start');
 };
 
-const closeServer = (server: Server) =>
-  new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
+before(async () => {
+  await mkdir(runtimeSourceDirectory, { recursive: true });
+  await copyFile(path.join(process.cwd(), 'src/db.ts'), path.join(runtimeSourceDirectory, 'db.ts'));
+
+  const port = await new Promise<number>((resolve, reject) => {
+    const listener = createServer();
+    listener.once('error', reject);
+    listener.listen(0, '127.0.0.1', () => {
+      const address = listener.address();
+      if (!address || typeof address === 'string') {
+        reject(new Error('Could not allocate a test port'));
         return;
       }
-      resolve();
+      listener.close((error) => error ? reject(error) : resolve(address.port));
     });
   });
+  baseUrl = `http://127.0.0.1:${port}`;
 
-const createTestApi = async (issues: IssueSeed[]) => {
-  const database = new DatabaseSync(':memory:');
-  initializeDatabase(database);
-  database.exec('DELETE FROM issues');
-  database.exec("DELETE FROM sqlite_sequence WHERE name = 'issues'");
-  seedIssues(database, issues);
+  const indexSource = await readFile(path.join(process.cwd(), 'src/index.ts'), 'utf8');
+  await writeFile(
+    path.join(runtimeSourceDirectory, 'index.ts'),
+    indexSource.replace('const PORT = 4000;', `const PORT = ${port};`)
+  );
 
-  const server = createApp(database).listen(0, '127.0.0.1');
-  await once(server, 'listening');
-
-  const { port } = server.address() as AddressInfo;
-  const baseUrl = `http://127.0.0.1:${port}`;
-
-  return {
-    baseUrl,
-    async close() {
-      await closeServer(server);
-      database.close();
-    },
-  };
-};
-
-test('GET /api/issues returns newest issues first', async () => {
-  const api = await createTestApi([
-    { title: 'oldest', created_at: '2026-08-10T08:00:00.000Z' },
-    { title: 'newest', created_at: '2026-08-12T08:00:00.000Z' },
-    { title: 'middle', created_at: '2026-08-11T08:00:00.000Z' },
-  ]);
-
-  try {
-    const response = await fetch(`${api.baseUrl}/api/issues`);
-    assert.equal(response.status, 200);
-
-    const issues = (await response.json()) as Array<{ title: string }>;
-    assert.deepEqual(
-      issues.map((issue) => issue.title),
-      ['newest', 'middle', 'oldest']
+  const database = new DatabaseSync(path.join(runtimeDirectory, 'data.sqlite'));
+  database.exec(`
+    CREATE TABLE issues (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      assignee TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
-  } finally {
-    await api.close();
-  }
+
+    INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
+    VALUES
+      ('oldest reset', '', 'open', 'medium', 'Priya', '2026-08-10T08:00:00.000Z', '2026-08-10T08:00:00.000Z'),
+      ('middle billing', '', 'closed', 'medium', 'Alex', '2026-08-11T08:00:00.000Z', '2026-08-11T08:00:00.000Z'),
+      ('first newest reset', '', 'open', 'medium', 'Priya', '2026-08-12T08:00:00.000Z', '2026-08-12T08:00:00.000Z'),
+      ('second newest reset', '', 'open', 'medium', 'Priya', '2026-08-12T08:00:00.000Z', '2026-08-12T08:00:00.000Z');
+  `);
+  database.close();
+
+  server = spawn(process.execPath, ['--import', 'tsx', path.join(runtimeSourceDirectory, 'index.ts')], {
+    cwd: process.cwd(),
+    stdio: 'pipe',
+  });
+  await waitForServer();
 });
 
-test('GET /api/issues orders identical timestamps by id descending', async () => {
-  const api = await createTestApi([
-    { title: 'first inserted', created_at: '2026-08-12T08:00:00.000Z' },
-    { title: 'second inserted', created_at: '2026-08-12T08:00:00.000Z' },
-    { title: 'third inserted', created_at: '2026-08-12T08:00:00.000Z' },
-  ]);
-
-  try {
-    const response = await fetch(`${api.baseUrl}/api/issues`);
-    assert.equal(response.status, 200);
-
-    const issues = (await response.json()) as Array<{ id: number }>;
-    assert.deepEqual(
-      issues.map((issue) => issue.id),
-      [3, 2, 1]
-    );
-  } finally {
-    await api.close();
+after(async () => {
+  if (server && server.exitCode === null) {
+    server.kill('SIGTERM');
+    await new Promise<void>((resolve) => server.once('exit', () => resolve()));
   }
+  await rm(runtimeDirectory, { recursive: true, force: true });
+});
+
+test('GET /api/issues returns newest issues first with id as the tie-breaker', async () => {
+  const response = await fetch(`${baseUrl}/api/issues`);
+  assert.equal(response.status, 200);
+
+  const issues = (await response.json()) as Array<{ id: number }>;
+  assert.deepEqual(
+    issues.map((issue) => issue.id),
+    [4, 3, 2, 1]
+  );
 });
 
 test('GET /api/issues search results stay newest first', async () => {
-  const api = await createTestApi([
-    { title: 'Reset password email typo', created_at: '2026-08-10T08:00:00.000Z' },
-    { title: 'Billing page crash', created_at: '2026-08-11T08:00:00.000Z' },
-    { title: 'Reset password flow broken', created_at: '2026-08-12T08:00:00.000Z' },
-  ]);
+  const response = await fetch(`${baseUrl}/api/issues?search=reset`);
+  assert.equal(response.status, 200);
 
-  try {
-    const response = await fetch(`${api.baseUrl}/api/issues?search=Reset`);
-    assert.equal(response.status, 200);
+  const issues = (await response.json()) as Array<{ id: number }>;
+  assert.deepEqual(
+    issues.map((issue) => issue.id),
+    [4, 3, 1]
+  );
+});
 
-    const issues = (await response.json()) as Array<{ title: string }>;
-    assert.deepEqual(
-      issues.map((issue) => issue.title),
-      ['Reset password flow broken', 'Reset password email typo']
-    );
-  } finally {
-    await api.close();
-  }
+test('production list query uses only the required ordering change', async () => {
+  const source = await readFile(path.join(process.cwd(), 'src/index.ts'), 'utf8');
+  assert.match(source, /query \+= ' ORDER BY created_at DESC, id DESC';/);
 });
