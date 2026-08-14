@@ -57,3 +57,13 @@ Spec Kit was unavailable, so fallback planning artifacts were created and retain
 - Local review verdict: `merge-ready`.
 - In-scope findings: none.
 - Diff hygiene and unchanged root `package-lock.json` confirmed.
+
+## Phase 5 — Blocked at publication
+
+- Final focused tests: 4 passed.
+- Final client and server builds/typechecks: passed.
+- Local review: `merge-ready`.
+- Commits and artifacts are retained locally.
+- Push failed with `ERROR: Repository not found`.
+- GitHub access check reports `viewerPermission: READ` for `miyagami-com/demo-app`.
+- The token cannot publish `feat/sup-103`; therefore no PR could be created without weakening validation or changing credentials.

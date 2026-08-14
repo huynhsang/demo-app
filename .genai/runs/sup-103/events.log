@@ -2,3 +2,4 @@
 2026-08-14T13:00:00+08:00 PHASE2 fallback planning complete; spec.md, plan.md, and tasks.md created
 2026-08-14T13:10:00+08:00 PHASE3 implementation complete; 4 focused tests passed; client and server builds passed
 2026-08-14T13:15:00+08:00 PHASE4 local review complete; verdict merge-ready; no in-scope findings
+2026-08-14T13:20:00+08:00 BLOCKED GitHub publication failed; authenticated token has READ permission only and cannot push feat/sup-103
