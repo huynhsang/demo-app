@@ -28,3 +28,13 @@
 - Confirmed validation is `npm run build -w client`; no automated test script is configured.
 - Created `spec.md`, `plan.md`, and `tasks.md` under `.genai/plans/sup-105-review-fixes/`.
 - No application code, commits, pushes, cherry-picks, or API calls were performed.
+
+## Implementation Status
+- Status: complete
+- Confirmed `feat/sup-105-review-fixes` is based directly on `origin/pr/assigned-to-me-filter`.
+- Unified initial loading, status changes, search changes, and assigned-to-me toggles through one `refresh` function.
+- Added `assignee: CURRENT_USER` only while assigned-to-me is enabled and removed the client-side `loadMine` path.
+- Confirmed toggling assigned-to-me off refreshes the active status/search without an assignee.
+- `npm run build -w client` passed (`tsc -b` and Vite production build).
+- Manual API verification covered composed status/search/assignee requests, retained status filtering, and removal of the assignee filter.
+- Browser automation was unavailable because the environment lacks the configured Chrome binary; focused API requests and code-path inspection were used instead.
