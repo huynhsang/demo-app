@@ -1,8 +1,15 @@
 # SUP-101 Summary
 
-Status: complete
+Status: implementation complete; publication pending
 
+- Work ID: `sup-101`
+- Branch: `feat/sup-101`
+- Worktree: `/home/kodyht/Workspaces/Projects/challenge/demo-app/.worktrees/feat-sup-101`
 - Changed `GET /api/issues` to order every result set by `created_at DESC, id DESC`.
 - Preserved the existing status, assignee, and search predicates and the route/query-builder structure.
 - Added focused API regression tests for newest-first ordering, deterministic same-timestamp ordering, and a search path.
-- Verified with targeted tests and `npm run build -w server`.
+- Focused API tests: 3 passed.
+- Server build/typecheck: passed.
+- Client build/typecheck: passed.
+- Lint: no lint script exists.
+- Local review: `merge-ready`.

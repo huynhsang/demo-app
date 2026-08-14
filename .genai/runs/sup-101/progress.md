@@ -56,6 +56,28 @@ The plan keeps the route/query-builder structure intact, makes the shared orderi
 
 Status: complete
 
+- Updated the shared `GET /api/issues` ordering to `created_at DESC, id DESC`.
+- Added an injectable app/database seam for isolated API tests.
+- Added API regressions for newest-first results, identical timestamps, and search ordering.
+- Focused tests: 3 passed.
+- Server build/typecheck: passed.
+- Client build/typecheck: passed.
+- No lint script exists.
+- The root test/build detector found no root scripts, so workspace-specific verification was run directly.
+
+## Phase 4 — Local review
+
+Status: complete
+
+- Review cycles: 1
+- Verdict: `merge-ready`
+- In-scope findings: none
+- Out-of-scope follow-ups: existing query interpolation and lazy default database initialization were noted but intentionally excluded from SUP-101.
+
+## Phase 3 — Implementation
+
+Status: complete
+
 - Exported a minimal `createApp` seam in `server/src/index.ts` so API tests can boot the Express app without production startup side effects.
 - Refactored `server/src/db.ts` to expose reusable database initialization for isolated in-memory test databases while preserving the production singleton.
 - Added focused API regression coverage for newest-first ordering, identical timestamps ordered by `id DESC`, and search results staying newest first.
