@@ -63,3 +63,14 @@ Status: Complete
 - Remediation: removed the generated cache and added `*.tsbuildinfo` to `.gitignore`.
 - Cycle 2: no in-scope findings remain.
 - Verdict: `merge-ready`.
+
+## Phase 5: Publication
+
+Status: Blocked
+
+- Final tests: 26 passed.
+- Final build: server TypeScript and client TypeScript/Vite passed.
+- Local commits are complete on `feat/sup-108-add-issue-comments`.
+- SSH publication failed because the configured remote repository was unavailable.
+- Authenticated HTTPS publication reached GitHub but returned HTTP 403: the configured token does not have write access to `miyagami-com/demo-app`.
+- A PR could not be created because the feature branch could not be pushed.
