@@ -26,10 +26,13 @@ export async function createIssue(input: {
   description: string;
   priority: Priority;
   assignee: string;
-}): Promise<Issue> {
+}, idempotencyKey: string): Promise<Issue> {
   const res = await fetch('/api/issues', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
+    },
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error('Failed to create issue');

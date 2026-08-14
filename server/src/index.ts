@@ -33,22 +33,75 @@ app.get('/api/issues/:id', (req, res) => {
 });
 
 app.post('/api/issues', (req, res) => {
+  const idempotencyKey = req.get('Idempotency-Key')?.trim();
   const { title, description, priority, assignee } = req.body ?? {};
 
   if (!title || !assignee) {
     return res.status(400).json({ error: 'title and assignee are required' });
   }
 
-  const now = new Date().toISOString();
-  const result = db
-    .prepare(
-      `INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
-       VALUES (?, ?, 'open', ?, ?, ?, ?)`
-    )
-    .run(title, description ?? '', priority ?? 'medium', assignee, now, now);
+  if (!idempotencyKey) {
+    const now = new Date().toISOString();
+    const result = db
+      .prepare(
+        `INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
+         VALUES (?, ?, 'open', ?, ?, ?, ?)`
+      )
+      .run(title, description ?? '', priority ?? 'medium', assignee, now, now);
 
-  const created = db.prepare('SELECT * FROM issues WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(created);
+    const created = db.prepare('SELECT * FROM issues WHERE id = ?').get(result.lastInsertRowid);
+    return res.status(201).json(created);
+  }
+
+  const requestPayload = JSON.stringify({
+    title,
+    description: description ?? '',
+    priority: priority ?? 'medium',
+    assignee,
+  });
+
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const existing = db
+      .prepare(
+        `SELECT request_payload, issue_id
+         FROM issue_creation_idempotency
+         WHERE idempotency_key = ?`
+      )
+      .get(idempotencyKey) as { request_payload: string; issue_id: number } | undefined;
+
+    if (existing) {
+      if (existing.request_payload !== requestPayload) {
+        db.exec('COMMIT');
+        return res.status(409).json({ error: 'Idempotency-Key already used with different payload' });
+      }
+
+      const issue = db.prepare('SELECT * FROM issues WHERE id = ?').get(existing.issue_id);
+      db.exec('COMMIT');
+      return res.json(issue);
+    }
+
+    const now = new Date().toISOString();
+    const result = db
+      .prepare(
+        `INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
+         VALUES (?, ?, 'open', ?, ?, ?, ?)`
+      )
+      .run(title, description ?? '', priority ?? 'medium', assignee, now, now);
+
+    db.prepare(
+      `INSERT INTO issue_creation_idempotency
+         (idempotency_key, request_payload, issue_id, created_at)
+       VALUES (?, ?, ?, ?)`
+    ).run(idempotencyKey, requestPayload, result.lastInsertRowid, now);
+
+    const created = db.prepare('SELECT * FROM issues WHERE id = ?').get(result.lastInsertRowid);
+    db.exec('COMMIT');
+    return res.status(201).json(created);
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
 });
 
 app.patch('/api/issues/:id', (req, res) => {

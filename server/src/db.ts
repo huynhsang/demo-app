@@ -18,6 +18,14 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS issue_creation_idempotency (
+    idempotency_key TEXT PRIMARY KEY,
+    request_payload TEXT NOT NULL,
+    issue_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (issue_id) REFERENCES issues(id)
+  );
 `);
 
 const { count } = db.prepare('SELECT COUNT(*) as count FROM issues').get() as { count: number };
