@@ -1,6 +1,6 @@
 # SUP-101 Summary
 
-Status: implementation complete; publication pending
+Status: blocked on GitHub publication
 
 - Work ID: `sup-101`
 - Branch: `feat/sup-101`
@@ -13,3 +13,7 @@ Status: implementation complete; publication pending
 - Client build/typecheck: passed.
 - Lint: no lint script exists.
 - Local review: `merge-ready`.
+- Commits: `742e462`, `3732f9b` (plus final blocker-log commit).
+- Push: failed because the configured GitHub token has `pull: true` and `push: false`.
+- PR URL: unavailable because `feat/sup-101` could not be pushed.
+- Exact blocker: `git push origin HEAD` returned `ERROR: Repository not found`, and the GitHub repository API reported no push permission for the configured token.
