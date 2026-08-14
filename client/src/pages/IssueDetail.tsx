@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import type { Issue, Priority, Status } from '../types';
 import { fetchIssue, updateIssue } from '../api';
 import { avatarColor, initials, formatDateTime, statusLabel } from '../utils';
-import { startIssueLoad } from './issueLoadLifecycle';
 
 const STATUSES: Status[] = ['open', 'in_progress', 'closed'];
 const PRIORITIES: Priority[] = ['low', 'medium', 'high'];
@@ -16,17 +15,26 @@ export default function IssueDetail() {
 
   useEffect(() => {
     if (!id) return;
-    return startIssueLoad({
-      id,
-      fetchIssue,
-      onReset: () => {
-        setIssue(null);
-        setNotFound(false);
-      },
-      onIssue: setIssue,
-      onAssigneeDraft: setAssigneeDraft,
-      onNotFound: () => setNotFound(true),
-    });
+    const controller = new AbortController();
+    let active = true;
+
+    setIssue(null);
+    setNotFound(false);
+    fetchIssue(id, controller.signal)
+      .then((data) => {
+        if (!active) return;
+        setIssue(data);
+        setAssigneeDraft(data.assignee);
+      })
+      .catch(() => {
+        if (!active || controller.signal.aborted) return;
+        setNotFound(true);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [id]);
 
   async function patch(input: Partial<Pick<Issue, 'status' | 'priority' | 'assignee'>>) {
