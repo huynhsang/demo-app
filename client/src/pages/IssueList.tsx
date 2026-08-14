@@ -14,12 +14,13 @@ export default function IssueList() {
   const [loading, setLoading] = useState(true);
   const [assignedToMe, setAssignedToMe] = useState(false);
 
-  async function refresh(nextStatus: string, nextSearch: string) {
+  async function refresh(nextStatus: string, nextSearch: string, nextAssignedToMe: boolean) {
     setLoading(true);
     try {
       const data = await fetchIssues({
         status: nextStatus === 'all' ? undefined : nextStatus,
         search: nextSearch || undefined,
+        assignee: nextAssignedToMe ? CURRENT_USER : undefined,
       });
       setIssues(data);
     } finally {
@@ -27,37 +28,25 @@ export default function IssueList() {
     }
   }
 
-  async function loadMine() {
-    setLoading(true);
-    try {
-      const all = await fetchIssues({});
-      setIssues(all.filter((i) => i.assignee.toLowerCase() === CURRENT_USER.toLowerCase()));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchIssues({}).then(setIssues).finally(() => setLoading(false));
+    refresh(status, '', false);
   }, []);
 
   function onStatusChange(next: string) {
     setStatus(next);
     localStorage.setItem('statusFilter', next);
-    refresh(next, search);
+    refresh(next, search, assignedToMe);
   }
 
   function onSearch(next: string) {
     setSearch(next);
-    refresh(status, next);
+    refresh(status, next, assignedToMe);
   }
 
   function onToggleMine() {
     const next = !assignedToMe;
     setAssignedToMe(next);
-    if (next) {
-      loadMine();
-    }
+    refresh(status, search, next);
   }
 
   return (
