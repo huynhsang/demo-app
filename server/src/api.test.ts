@@ -1,109 +1,105 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import type { AddressInfo } from 'node:net';
+import fs from 'node:fs';
+import net from 'node:net';
+import path from 'node:path';
 import test from 'node:test';
-import type { DatabaseSync } from 'node:sqlite';
-import type { Server } from 'node:http';
-import { createDatabase } from './db.js';
-import { createApp } from './index.js';
 
-type Issue = {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  assignee: string;
-  created_at: string;
-  updated_at: string;
-};
-
-async function withApi(
-  run: (context: { db: DatabaseSync; baseUrl: string }) => Promise<void>
-) {
-  const db = createDatabase(':memory:');
-  const server: Server = createApp(db).listen(0);
+async function availablePort() {
+  const server = net.createServer();
+  server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const { port } = server.address() as AddressInfo;
-
-  try {
-    await run({ db, baseUrl: `http://127.0.0.1:${port}` });
-  } finally {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
-    db.close();
-  }
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  server.close();
+  await once(server, 'close');
+  return port;
 }
 
-for (const status of ['open', 'in_progress', 'closed']) {
-  test(`PATCH accepts and persists status ${status}`, async () => {
-    await withApi(async ({ db, baseUrl }) => {
+test('PATCH validates status before writing and preserves valid or omitted status', async () => {
+  const fixtureDirectory = path.join(process.cwd(), '.test-data', 'api');
+  const sourceDirectory = path.join(fixtureDirectory, 'src');
+  const port = await availablePort();
+
+  fs.rmSync(fixtureDirectory, { force: true, recursive: true });
+  fs.mkdirSync(sourceDirectory, { recursive: true });
+  fs.copyFileSync(path.join(process.cwd(), 'src', 'db.ts'), path.join(sourceDirectory, 'db.ts'));
+  const indexSource = fs
+    .readFileSync(path.join(process.cwd(), 'src', 'index.ts'), 'utf8')
+    .replace('const PORT = 4000;', `const PORT = ${port};`);
+  fs.writeFileSync(path.join(sourceDirectory, 'index.ts'), indexSource);
+
+  const server = spawn('tsx', [path.join(sourceDirectory, 'index.ts')], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const serverExited = once(server, 'exit');
+
+  try {
+    await Promise.race([
+      once(server.stdout, 'data'),
+      serverExited.then(([code]) => {
+        throw new Error(`test server exited with code ${code}`);
+      }),
+    ]);
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    for (const status of ['open', 'in_progress', 'closed']) {
       const response = await fetch(`${baseUrl}/api/issues/1`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-
       assert.equal(response.status, 200);
-      assert.equal((await response.json() as Issue).status, status);
-      assert.equal(
-        (db.prepare('SELECT status FROM issues WHERE id = 1').get() as { status: string }).status,
-        status
-      );
-    });
-  });
-}
+      assert.equal((await response.json() as { status: string }).status, status);
+    }
 
-for (const status of ['pending', null, 42]) {
-  test(`PATCH rejects invalid explicit status ${JSON.stringify(status)}`, async () => {
-    await withApi(async ({ db, baseUrl }) => {
-      const before = db.prepare('SELECT * FROM issues WHERE id = 1').get();
-      const response = await fetch(`${baseUrl}/api/issues/1`, {
+    const before = await fetch(`${baseUrl}/api/issues/1`).then((response) => response.json()) as {
+      status: string;
+    };
+    for (const status of ['pending', null, 42]) {
+      const invalidResponse = await fetch(`${baseUrl}/api/issues/1`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ status, title: 'must not persist' }),
       });
-
-      assert.equal(response.status, 400);
-      assert.deepEqual(await response.json(), {
+      assert.equal(invalidResponse.status, 400);
+      assert.deepEqual(await invalidResponse.json(), {
         error: 'Invalid status. Allowed values: open, in_progress, closed',
         field: 'status',
         allowed: ['open', 'in_progress', 'closed'],
       });
-      assert.deepEqual(db.prepare('SELECT * FROM issues WHERE id = 1').get(), before);
-    });
-  });
-}
+      assert.deepEqual(
+        await fetch(`${baseUrl}/api/issues/1`).then((response) => response.json()),
+        before
+      );
+    }
 
-test('PATCH without status updates other fields and retains status', async () => {
-  await withApi(async ({ db, baseUrl }) => {
-    const before = db.prepare('SELECT * FROM issues WHERE id = 2').get() as Issue;
-    const response = await fetch(`${baseUrl}/api/issues/2`, {
+    const omittedResponse = await fetch(`${baseUrl}/api/issues/1`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ title: 'Updated title' }),
     });
-    const body = await response.json() as Issue;
+    assert.equal(omittedResponse.status, 200);
+    const omittedBody = await omittedResponse.json() as { title: string; status: string };
+    assert.equal(omittedBody.title, 'Updated title');
+    assert.equal(omittedBody.status, before.status);
+    assert.deepEqual(
+      await fetch(`${baseUrl}/api/issues/1`).then((response) => response.json()),
+      omittedBody
+    );
 
-    assert.equal(response.status, 200);
-    assert.equal(body.title, 'Updated title');
-    assert.equal(body.status, before.status);
-    const persisted = db.prepare('SELECT * FROM issues WHERE id = 2').get() as Issue;
-    assert.equal(persisted.title, 'Updated title');
-    assert.equal(persisted.status, before.status);
-  });
-});
-
-test('PATCH preserves not-found lookup ordering for invalid status', async () => {
-  await withApi(async ({ baseUrl }) => {
-    const response = await fetch(`${baseUrl}/api/issues/99999`, {
+    const missingResponse = await fetch(`${baseUrl}/api/issues/99999`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ status: 'pending' }),
     });
-
-    assert.equal(response.status, 404);
-    assert.deepEqual(await response.json(), { error: 'not found' });
-  });
+    assert.equal(missingResponse.status, 404);
+    assert.deepEqual(await missingResponse.json(), { error: 'not found' });
+  } finally {
+    server.kill('SIGTERM');
+    await serverExited;
+    fs.rmSync(fixtureDirectory, { force: true, recursive: true });
+  }
 });

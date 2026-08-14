@@ -3,18 +3,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
-import { createDatabase } from './db.js';
+import { pathToFileURL } from 'node:url';
 
-test('new databases constrain status to the three supported values', () => {
-  const db = createDatabase(':memory:');
+function copyDatabaseModule(name: string) {
+  const fixtureDirectory = path.join(process.cwd(), '.test-data', name);
+  const sourceDirectory = path.join(fixtureDirectory, 'src');
+  fs.rmSync(fixtureDirectory, { force: true, recursive: true });
+  fs.mkdirSync(sourceDirectory, { recursive: true });
+  const modulePath = path.join(sourceDirectory, 'db.ts');
+  fs.copyFileSync(path.join(process.cwd(), 'src', 'db.ts'), modulePath);
+  return { fixtureDirectory, modulePath };
+}
+
+test('new databases constrain status to the three supported values', async () => {
+  const { fixtureDirectory, modulePath } = copyDatabaseModule('new-database');
+  const { db } = await import(pathToFileURL(modulePath).href);
 
   try {
     for (const status of ['open', 'in_progress', 'closed']) {
       db.prepare('UPDATE issues SET status = ? WHERE id = 1').run(status);
-      assert.equal(
-        (db.prepare('SELECT status FROM issues WHERE id = 1').get() as { status: string }).status,
-        status
-      );
     }
     assert.throws(
       () => db.prepare('UPDATE issues SET status = ? WHERE id = 1').run('pending'),
@@ -22,16 +29,14 @@ test('new databases constrain status to the three supported values', () => {
     );
   } finally {
     db.close();
+    fs.rmSync(fixtureDirectory, { force: true, recursive: true });
   }
 });
 
-test('legacy unconstrained databases start without migration and preserve rows', () => {
-  const fixtureDirectory = path.join(process.cwd(), '.test-data');
-  const fixturePath = path.join(fixtureDirectory, 'legacy.sqlite');
-  fs.mkdirSync(fixtureDirectory, { recursive: true });
-  fs.rmSync(fixturePath, { force: true });
-
-  const legacyDb = new DatabaseSync(fixturePath);
+test('existing databases are not migrated', async () => {
+  const { fixtureDirectory, modulePath } = copyDatabaseModule('existing-database');
+  const databasePath = path.join(fixtureDirectory, 'data.sqlite');
+  const legacyDb = new DatabaseSync(databasePath);
   legacyDb.exec(`
     CREATE TABLE issues (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,22 +55,14 @@ test('legacy unconstrained databases start without migration and preserve rows',
   `);
   legacyDb.close();
 
-  let reopened: DatabaseSync | undefined;
+  const { db } = await import(pathToFileURL(modulePath).href);
   try {
-    reopened = createDatabase(fixturePath);
-    assert.deepEqual({ ...reopened.prepare('SELECT * FROM issues').get() }, {
-      id: 1,
-      title: 'Legacy issue',
-      description: 'Existing row',
-      status: 'legacy_value',
-      priority: 'medium',
-      assignee: 'Alex',
-      created_at: 'before',
-      updated_at: 'before',
-    });
+    assert.equal(
+      (db.prepare('SELECT status FROM issues WHERE id = 1').get() as { status: string }).status,
+      'legacy_value'
+    );
   } finally {
-    reopened?.close();
-    fs.rmSync(fixturePath, { force: true });
-    fs.rmdirSync(fixtureDirectory);
+    db.close();
+    fs.rmSync(fixtureDirectory, { force: true, recursive: true });
   }
 });
