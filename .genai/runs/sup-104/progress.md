@@ -63,7 +63,10 @@ The plan uses narrow server-side validation, a new-database-only SQLite `CHECK` 
 
 ## Phase 4 — Complete
 
+- Local review completed with no high-confidence in-scope findings.
+- Verdict: `merge-ready`.
 - Focused server tests pass.
-- Server and client builds pass.
+- Server and client builds pass; these TypeScript builds provide the available typechecking.
+- No lint script exists.
 - Root `package-lock.json` is unchanged.
 - No generated database fixture remains.
