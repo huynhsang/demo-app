@@ -8,3 +8,4 @@ Status: implementation and verification complete.
 - Verification: client and server builds passed; browser automation passed the composed-filter and toggle-off restoration scenario.
 - Local review: merge-ready.
 - Scope: no SUP-106 or unrelated changes.
+- Delivery: blocked before push/PR because the configured GitHub token has read-only upstream access and repository forking is disabled.
