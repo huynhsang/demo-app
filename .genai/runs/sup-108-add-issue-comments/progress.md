@@ -74,3 +74,9 @@ Status: Blocked
 - SSH publication failed because the configured remote repository was unavailable.
 - Authenticated HTTPS publication reached GitHub but returned HTTP 403: the configured token does not have write access to `miyagami-com/demo-app`.
 - A PR could not be created because the feature branch could not be pushed.
+
+### Resolution
+
+- The repository remote was updated to `huynhsang/demo-app`.
+- The feature branch was pushed successfully.
+- GitHub PR: https://github.com/huynhsang/demo-app/pull/7
