@@ -36,5 +36,5 @@
 - Added `assignee: CURRENT_USER` only while assigned-to-me is enabled and removed the client-side `loadMine` path.
 - Confirmed toggling assigned-to-me off refreshes the active status/search without an assignee.
 - `npm run build -w client` passed (`tsc -b` and Vite production build).
-- Manual API verification covered composed status/search/assignee requests, retained status filtering, and removal of the assignee filter.
-- Browser automation was unavailable because the environment lacks the configured Chrome binary; focused API requests and code-path inspection were used instead.
+- Browser automation verified the control/result transitions with intercepted API responses: status and search retained `assignee=Alex` while enabled, results matched the composed filters, and disabling assigned-to-me retained status/search while omitting assignee.
+- Temporary Playwright verification files and generated artifacts were removed after the passing run.
