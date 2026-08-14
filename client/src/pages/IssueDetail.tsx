@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { Issue, Priority, Status } from '../types';
 import { fetchIssue, updateIssue } from '../api';
 import { avatarColor, initials, formatDateTime, statusLabel } from '../utils';
+import { startIssueLoad } from './issueLoadLifecycle';
 
 const STATUSES: Status[] = ['open', 'in_progress', 'closed'];
 const PRIORITIES: Priority[] = ['low', 'medium', 'high'];
@@ -15,14 +16,17 @@ export default function IssueDetail() {
 
   useEffect(() => {
     if (!id) return;
-    setIssue(null);
-    setNotFound(false);
-    fetchIssue(id)
-      .then((data) => {
-        setIssue(data);
-        setAssigneeDraft(data.assignee);
-      })
-      .catch(() => setNotFound(true));
+    return startIssueLoad({
+      id,
+      fetchIssue,
+      onReset: () => {
+        setIssue(null);
+        setNotFound(false);
+      },
+      onIssue: setIssue,
+      onAssigneeDraft: setAssigneeDraft,
+      onNotFound: () => setNotFound(true),
+    });
   }, [id]);
 
   async function patch(input: Partial<Pick<Issue, 'status' | 'priority' | 'assignee'>>) {
