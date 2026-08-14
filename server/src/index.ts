@@ -19,7 +19,7 @@ app.get('/api/issues', (req, res) => {
   if (search) {
     query += ` AND title LIKE '%${search}%'`;
   }
-  query += ' ORDER BY created_at ASC';
+  query += ' ORDER BY created_at DESC, id DESC';
 
   const rows = db.prepare(query).all();
   res.json(rows);
