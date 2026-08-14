@@ -8,3 +8,4 @@ Status: implementation and verification complete.
 - Verification: 4 server tests and 3 client flow tests passed; client and server builds passed.
 - Local review: merge-ready.
 - Scope: pre-existing list-query interpolation and unrelated cleanup were excluded.
+- Delivery: blocked before push/PR because the configured GitHub token has read-only upstream access and repository forking is disabled.
