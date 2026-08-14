@@ -136,6 +136,11 @@ a {
   background: var(--primary-hover);
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);
@@ -442,4 +447,80 @@ a {
   border-top: 1px solid var(--border);
   font-size: 12px;
   color: var(--text-faint);
+}
+
+.comments-card {
+  margin-top: 18px;
+  padding: 28px;
+}
+
+.comments-card h2 {
+  margin: 0 0 20px;
+  font-size: 17px;
+}
+
+.comments-empty {
+  margin: 0 0 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+}
+
+.comment {
+  display: flex;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.comment:first-child {
+  padding-top: 0;
+}
+
+.comment-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.comment-meta time {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.comment-content p {
+  margin: 5px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.comment-form {
+  padding-top: 4px;
+}
+
+.comment-form .field:last-of-type {
+  margin-bottom: 10px;
+}
+
+.form-error,
+.error-state {
+  color: #b91c1c;
+}
+
+.form-error {
+  font-size: 13px;
 }

@@ -5,25 +5,52 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, '..', 'data.sqlite');
 
-export const db = new DatabaseSync(dbPath);
+interface DatabaseOptions {
+  seed?: boolean;
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS issues (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'open',
-    priority TEXT NOT NULL DEFAULT 'medium',
-    assignee TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
-`);
+export function createDatabase(filename: string, options: DatabaseOptions = {}): DatabaseSync {
+  const database = new DatabaseSync(filename);
+  database.exec('PRAGMA foreign_keys = ON');
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS issues (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      assignee TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
 
-const { count } = db.prepare('SELECT COUNT(*) as count FROM issues').get() as { count: number };
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      issue_id INTEGER NOT NULL,
+      author TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (issue_id) REFERENCES issues(id)
+    );
 
-if (count === 0) {
-  const insert = db.prepare(`
+    CREATE INDEX IF NOT EXISTS comments_issue_created_idx
+      ON comments (issue_id, created_at, id);
+  `);
+
+  if (options.seed !== false) {
+    seedIssues(database);
+  }
+
+  return database;
+}
+
+function seedIssues(database: DatabaseSync): void {
+  const { count } = database.prepare('SELECT COUNT(*) as count FROM issues').get() as {
+    count: number;
+  };
+  if (count !== 0) return;
+
+  const insert = database.prepare(`
     INSERT INTO issues (title, description, status, priority, assignee, created_at, updated_at)
     VALUES (@title, @description, @status, @priority, @assignee, @created_at, @updated_at)
   `);
@@ -44,7 +71,14 @@ if (count === 0) {
     { title: 'Duplicate "welcome" issue created last sprint', description: 'Looks like the same issue got filed twice by mistake.', status: 'closed', priority: 'low', assignee: 'Priya', created_at: daysAgo(10), updated_at: daysAgo(9) },
   ];
 
-  db.exec('BEGIN');
-  for (const row of issues) insert.run(row);
-  db.exec('COMMIT');
+  database.exec('BEGIN');
+  try {
+    for (const row of issues) insert.run(row);
+    database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
 }
+
+export const db = createDatabase(dbPath);
