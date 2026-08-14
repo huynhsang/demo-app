@@ -1,6 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
+import {
+  BulkCloseNotFoundError,
+  BulkCloseValidationError,
+  closeIssues,
+} from './bulkClose.js';
 
 const app = express();
 app.use(cors());
@@ -51,25 +56,21 @@ app.post('/api/issues', (req, res) => {
   res.status(201).json(created);
 });
 
-app.post('/api/issues/bulk-close', (req, res) => {
+app.post('/api/issues/bulk-close', (req, res, next) => {
   const { ids } = req.body ?? {};
 
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ error: 'ids must be a non-empty array' });
+  try {
+    const updated = closeIssues(db, ids);
+    res.json({ updated });
+  } catch (error) {
+    if (error instanceof BulkCloseValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error instanceof BulkCloseNotFoundError) {
+      return res.status(404).json({ error: error.message });
+    }
+    next(error);
   }
-
-  const existing = db.prepare(`SELECT id FROM issues WHERE id IN (${ids.join(',')})`).all();
-  if (existing.length !== ids.length) {
-    return res.status(404).json({ error: 'one or more issues not found' });
-  }
-
-  const now = new Date().toISOString();
-  for (const id of ids) {
-    db.prepare('UPDATE issues SET status = ?, updated_at = ? WHERE id = ?').run('closed', now, id);
-  }
-
-  const updated = db.prepare(`SELECT * FROM issues WHERE id IN (${ids.join(',')})`).all();
-  res.json({ updated });
 });
 
 app.patch('/api/issues/:id', (req, res) => {

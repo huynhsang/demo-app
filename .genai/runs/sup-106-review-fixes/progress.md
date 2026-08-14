@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning complete.
+Implementation complete.
 
 ## Requirements
 - Incorporate the bulk-close feature from `pr/bulk-close-issues`.
@@ -42,4 +42,23 @@ Planning complete.
 
 ## Next Step
 
-Fast-forward the dedicated SUP-106 branch to `origin/pr/bulk-close-issues`, then implement the ordered checklist and keep the resulting PR separate from SUP-105.
+No implementation work remains. The branch is ready for review without pushing or creating a PR.
+
+## Implementation
+
+- Added safe-integer, non-empty, and duplicate ID validation before database work.
+- Added placeholder-only bulk SQL with bound values and one set-based update.
+- Added a transaction covering existence validation, update, and updated-row retrieval.
+- Added rollback behavior for missing IDs and database failures.
+- Cleared client selections only after a successful close and refreshed active filters.
+- Added targeted Node runtime tests for server atomicity/validation and client success/failure sequencing.
+
+## Validation
+
+- `npm test -w server`: passed, 4 tests.
+- `../../node_modules/.bin/tsx --test client/src/bulkCloseFlow.test.ts`: passed, 3 tests.
+- `npm run build -w server`: passed.
+- `npm run build -w client`: passed.
+- HTTP runtime validation: passed 9 rejected/missing cases with unchanged rows and one valid atomic batch.
+- Runtime database state restored by removing the generated untracked database.
+- Diff reviewed against `origin/pr/bulk-close-issues`; the pre-existing list-query interpolation was not changed.
