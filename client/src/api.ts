@@ -1,4 +1,27 @@
-import type { Issue, Priority } from './types';
+import type { Comment, Issue, IssueDetail, Priority } from './types';
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function responseError(response: Response, fallback: string): Promise<ApiError> {
+  let message = fallback;
+  try {
+    const data = (await response.json()) as { error?: unknown };
+    if (typeof data.error === 'string' && data.error.trim()) {
+      message = data.error;
+    }
+  } catch {
+    // Keep the actionable operation-specific fallback for non-JSON responses.
+  }
+  return new ApiError(message, response.status);
+}
 
 export async function fetchIssues(params: {
   status?: string;
@@ -15,9 +38,9 @@ export async function fetchIssues(params: {
   return res.json();
 }
 
-export async function fetchIssue(id: string | number): Promise<Issue> {
+export async function fetchIssue(id: string | number): Promise<IssueDetail> {
   const res = await fetch(`/api/issues/${id}`);
-  if (!res.ok) throw new Error('Failed to load issue');
+  if (!res.ok) throw await responseError(res, 'Failed to load issue');
   return res.json();
 }
 
@@ -46,5 +69,18 @@ export async function updateIssue(
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error('Failed to update issue');
+  return res.json();
+}
+
+export async function createComment(
+  issueId: number | string,
+  input: Pick<Comment, 'author' | 'body'>
+): Promise<Comment> {
+  const res = await fetch(`/api/issues/${issueId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await responseError(res, 'Failed to create comment');
   return res.json();
 }
