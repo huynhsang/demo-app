@@ -12,7 +12,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'open',
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'closed')),
     priority TEXT NOT NULL DEFAULT 'medium',
     assignee TEXT NOT NULL,
     created_at TEXT NOT NULL,

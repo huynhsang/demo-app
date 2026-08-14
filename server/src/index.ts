@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
 
+const allowedStatuses = ['open', 'in_progress', 'closed'];
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -53,12 +55,21 @@ app.post('/api/issues', (req, res) => {
 
 app.patch('/api/issues/:id', (req, res) => {
   const { id } = req.params;
-  const { title, description, status, assignee, priority } = req.body ?? {};
+  const body = req.body ?? {};
+  const { title, description, status, assignee, priority } = body;
 
   const existing = db.prepare('SELECT * FROM issues WHERE id = ?').get(id) as
     | Record<string, unknown>
     | undefined;
   if (!existing) return res.status(404).json({ error: 'not found' });
+
+  if (Object.prototype.hasOwnProperty.call(body, 'status') && !allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      error: 'Invalid status. Allowed values: open, in_progress, closed',
+      field: 'status',
+      allowed: allowedStatuses,
+    });
+  }
 
   const next = {
     title: title ?? existing.title,
